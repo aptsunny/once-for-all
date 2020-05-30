@@ -1,4 +1,4 @@
-# Once for All: Train One Network and Specialize it for Efficient Deployment [[Website]](https://ofa.mit.edu/) [[arXiv]](https://arxiv.org/abs/1908.09791) [[Slides]](https://hanlab.mit.edu/files/OnceForAll/OFA%20Slides.pdf) [[Video]](https://youtu.be/a_OeT8MXzWI)
+# Once for All: Train One Network and Specialize it for Efficient Deployment [[arXiv]](https://arxiv.org/abs/1908.09791) [[Slides]](https://file.lzhu.me/projects/OnceForAll/OFA%20Slides.pdf) [[Video]](https://youtu.be/a_OeT8MXzWI)
 ```BibTex
 @inproceedings{
   cai2020once,
@@ -10,21 +10,22 @@
 }
 ```
 
+## News
+- Fisrt place in the 4th [Low-Power Computer Vision Challenge](https://lpcv.ai/competitions/2019), both classification and detection track.
+- First place in the 3rd [Low-Power Computer Vision Challenge](https://lpcv.ai/competitions/2019), DSP track at ICCV’19 using the Once-for-all Network.
+
 ## Train once, specialize for many deployment scenarios
-![](https://hanlab.mit.edu/files/OnceForAll/figures/overview_new_2.png)
+![](figures/overview.png)
 
 ## 80% top1 ImageNet accuracy under mobile setting
-![](https://hanlab.mit.edu/files/OnceForAll/figures/cnn_imagenet_new.png)
+![](figures/cnn_imagenet_new.png)
 
-![](https://hanlab.mit.edu/files/OnceForAll/figures/ImageNet_mobile_80acc_mac.png)
+![](figures/imagenet_80_acc.png)
 
-## Consistently outperforms MobileNetV3
-![](https://hanlab.mit.edu/files/OnceForAll/figures/diverse_hardwares_new.png)
+## Consistently outperforms MobileNetV3 on Diverse hardware platforms
+![](figures/diverse_hardware.png)
 
-## Diverse hardware platforms
-![](https://hanlab.mit.edu/files/OnceForAll/figures/many_hardwares_new2.png)
-
-## How to use / evaluate **OFA Specialized Networks**
+## How to use / evaluate **OFA Specialized Networks** 
 ### Use
 ```python
 """ OFA Specialized Networks.
@@ -33,6 +34,7 @@ Example: net, image_size = ofa_specialized('flops@595M_top1@80.0_finetune@75', p
 from model_zoo import ofa_specialized
 net, image_size = ofa_specialized(net_id, pretrained=True)
 ```
+If the above scripts failed to download, you download it manually from [Google Drive](https://drive.google.com/drive/folders/1ez-t_DAHDet2fqe9TZUTJmvrU-AwofAt?usp=sharing) and put them under $HOME/.torch/ofa_specialized/.
 
 ### Evaluate
 
@@ -197,6 +199,8 @@ random_subnet = ofa_network.get_active_subnet(preserve_weight=True)
 ofa_network.set_active_subnet(ks=7, e=6, d=4)
 manual_subnet = ofa_network.get_active_subnet(preserve_weight=True)
 ```
+If the above scripts failed to download, you download it manually from [Google Drive](https://drive.google.com/drive/folders/10leLmIiMtaRu4J46KwrBaMydvQt0qFuI?usp=sharing) and put them under $HOME/.torch/ofa_nets/.
+
 ### Evaluate
 
 `python eval_ofa_net.py --path 'Your path to imagenet' --net ofa_mbv3_d234_e346_k357_w1.0 `
@@ -213,6 +217,10 @@ or
 horovodrun -np 32 -H <server1_ip>:8,<server2_ip>:8,<server3_ip>:8,<server4_ip>:8 \
     python train_ofa_net.py
 ```
+
+## Introduction Video
+
+[![Watch the video](figures/video_figure.png)](https://www.youtube.com/watch?v=a_OeT8MXzWI&feature=youtu.be)
 
 ## Requirement
 * Python 3.6
