@@ -32,6 +32,7 @@ class DistributedRunManager:
         if self.is_root:
             # print net info
             net_info = get_net_info(self.net, self.run_config.data_provider.data_shape)
+            # net_info = get_net_info(self.net, input_shape=(3, 224, 224))
             with open('%s/net_info.txt' % self.path, 'w') as fout:
                 fout.write(json.dumps(net_info, indent=4) + '\n')
                 fout.write(self.net.module_str)
@@ -56,6 +57,7 @@ class DistributedRunManager:
         else:
             net_params = self.net.weight_parameters()
         self.optimizer = self.run_config.build_optimizer(net_params)
+
         self.optimizer = hvd.DistributedOptimizer(
             self.optimizer, named_parameters=self.net.named_parameters(), compression=hvd_compression,
             backward_passes_per_step=backward_steps,

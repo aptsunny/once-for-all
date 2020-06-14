@@ -115,6 +115,15 @@ parser.add_argument(
     ' | '.join(specialized_network_list) +
     ' (default: pixel1_lat@143ms_top1@80.1_finetune@75)')
 
+parser.add_argument(
+    '--ofanet',
+    metavar='OFANET',
+    default='ofa_mbv3_d234_e346_k357_w1.0',
+    choices=['ofa_mbv3_d234_e346_k357_w1.0', 'ofa_mbv3_d234_e346_k357_w1.2', 'ofa_proxyless_d234_e346_k357_w1.3'],
+    help='OFA networks')
+
+parser.add_argument('--phase', type=int, default=1, choices=[1, 2])
+
 args = parser.parse_args()
 if args.gpu == 'all':
     device_list = range(torch.cuda.device_count())
@@ -123,7 +132,15 @@ else:
     device_list = [int(_) for _ in args.gpu.split(',')]
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
-net, image_size = ofa_specialized(net_id=args.net, pretrained=True)
+if args.phase==1:
+    net, image_size = ofa_specialized(net_id=args.net, pretrained=True)
+    print(image_size)
+else:
+    from model_zoo import ofa_net
+    net = ofa_net(args.ofanet, pretrained=True)
+    image_size=236
+
+
 args.batch_size = args.batch_size * max(len(device_list), 1)
 
 data_loader = torch.utils.data.DataLoader(

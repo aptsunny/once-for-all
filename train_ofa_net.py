@@ -19,9 +19,7 @@ from imagenet_codebase.utils import download_url
 from elastic_nn.training.progressive_shrinking import load_models
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--task', type=str, default='depth', choices=[
-    'kernel', 'depth', 'expand',
-])
+parser.add_argument('--task', type=str, default='kernel', choices=['kernel', 'depth', 'expand',])
 parser.add_argument('--phase', type=int, default=1, choices=[1, 2])
 
 args = parser.parse_args()
@@ -56,8 +54,9 @@ elif args.task == 'depth':
         args.depth_list = '2,3,4'
 elif args.task == 'expand':
     args.path = 'exp/kernel_depth2kernel_depth_width/phase%d' % args.phase
-    args.dynamic_batch_size = 4
-    if args.phase == 1:
+    args.dynamic_batch_size = 4 # dynamic_batch_size ？？？
+    # args.dynamic_batch_size = 200 # dynamic_batch_size ？？？
+    if args.phase == 1: # finetune subnetwork
         args.n_epochs = 25
         args.base_lr = 2.5e-3
         args.warmup_epochs = 0
@@ -65,7 +64,7 @@ elif args.task == 'expand':
         args.ks_list = '3,5,7'
         args.expand_list = '4,6'
         args.depth_list = '2,3,4'
-    else:
+    else: # train largest network
         args.n_epochs = 120
         args.base_lr = 7.5e-3
         args.warmup_epochs = 5
@@ -79,7 +78,7 @@ args.manual_seed = 0
 
 args.lr_schedule_type = 'cosine'
 
-args.base_batch_size = 64
+args.base_batch_size = 64 # 64
 args.valid_size = 10000
 
 args.opt_type = 'sgd'
@@ -121,7 +120,7 @@ if __name__ == '__main__':
     hvd.init()
     # Pin GPU to be used to process local rank (one GPU per process)
     torch.cuda.set_device(hvd.local_rank())
-
+    # 加载训练完成的大网络ofa_D4_E6_K7, finetune 小网络
     args.teacher_path = download_url(
         'https://file.lzhu.me/projects/OnceForAll/ofa_checkpoints/ofa_D4_E6_K7',
         model_dir='.torch/ofa_checkpoints/%d' % hvd.rank()
@@ -193,7 +192,7 @@ if __name__ == '__main__':
     # hvd broadcast
     distributed_run_manager.broadcast()
 
-    # load teacher net weights
+    # load teacher net weights 加载teacher 权重
     if args.kd_ratio > 0:
         load_models(distributed_run_manager, args.teacher_model, model_path=args.teacher_path)
 

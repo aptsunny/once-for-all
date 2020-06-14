@@ -73,6 +73,59 @@ def validate(run_manager, epoch=0, is_test=True, image_size_list=None,
 
     return list_mean(losses_of_subnets), list_mean(top1_of_subnets), list_mean(top5_of_subnets), valid_log
 
+def validate_without_horovod(run_manager, epoch=0, is_test=True, image_size_list=None,
+             width_mult_list=None, ks_list=None, expand_ratio_list=None, depth_list=None, additional_setting=None):
+    dynamic_net = run_manager.net
+    if isinstance(dynamic_net, nn.DataParallel):
+        dynamic_net = dynamic_net.module
+
+    dynamic_net.eval()
+
+    if image_size_list is None:
+        image_size_list = int2list(run_manager.run_config.data_provider.image_size, 1)
+    if width_mult_list is None:
+        width_mult_list = [i for i in range(len(dynamic_net.width_mult_list))]
+    if ks_list is None:
+        ks_list = dynamic_net.ks_list
+    if expand_ratio_list is None:
+        expand_ratio_list = dynamic_net.expand_ratio_list
+    if depth_list is None:
+        depth_list = dynamic_net.depth_list
+
+    subnet_settings = []
+    for w in width_mult_list:
+        for d in depth_list:
+            for e in expand_ratio_list:
+                for k in ks_list:
+                    for img_size in image_size_list:
+                        subnet_settings.append([{
+                            'image_size': img_size,
+                            'wid': w,
+                            'd': d,
+                            'e': e,
+                            'ks': k,
+                        }, 'R%s-W%s-D%s-E%s-K%s' % (img_size, w, d, e, k)])
+    if additional_setting is not None:
+        subnet_settings += additional_setting
+
+    losses_of_subnets, top1_of_subnets, top5_of_subnets = [], [], []
+
+    valid_log = ''
+    for setting, name in subnet_settings:
+        run_manager.write_log('-' * 30 + ' Validate %s ' % name + '-' * 30, 'train', should_print=False)
+        run_manager.run_config.data_provider.assign_active_img_size(setting.pop('image_size'))
+        dynamic_net.set_active_subnet(**setting)
+        run_manager.write_log(dynamic_net.module_str, 'train', should_print=False)
+
+        run_manager.reset_running_statistics(dynamic_net)
+        loss, top1, top5 = run_manager.validate(epoch=epoch, is_test=is_test, run_str=name, net=dynamic_net)
+        losses_of_subnets.append(loss)
+        top1_of_subnets.append(top1)
+        top5_of_subnets.append(top5)
+        valid_log += '%s (%.3f), ' % (name, top1)
+
+    return list_mean(losses_of_subnets), list_mean(top1_of_subnets), list_mean(top5_of_subnets), valid_log
+
 
 def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
     dynamic_net = run_manager.net
@@ -209,7 +262,10 @@ def load_models(run_manager, dynamic_net, model_path=None):
     # specify init path
     init = torch.load(model_path, map_location='cpu')['state_dict']
     dynamic_net.load_weights_from_net(init)
-    run_manager.write_log('Loaded init from %s' % model_path, 'valid')
+    # run_manager.write_log('Loaded init from %s' % model_path, 'valid')
+
+    if run_manager:
+        run_manager.write_log('Loaded init from %s' % model_path, 'valid')
 
 
 def supporting_elastic_depth(train_func, run_manager, args, validate_func_dict):
@@ -228,11 +284,11 @@ def supporting_elastic_depth(train_func, run_manager, args, validate_func_dict):
     validate_func_dict['depth_list'] = sorted(dynamic_net.depth_list)
 
     if args.phase == 1:
-        model_path = download_url('https://file.lzhu.me/projects/OnceForAll/ofa_checkpoints/ofa_D4_E6_K357',
+        model_path = download_url('https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K357',
                                   model_dir='.torch/ofa_checkpoints/%d' % hvd.rank())
         load_models(run_manager, dynamic_net, model_path=model_path)
     else:
-        model_path = download_url('https://file.lzhu.me/projects/OnceForAll/ofa_checkpoints/ofa_D34_E6_K357',
+        model_path = download_url('https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D34_E6_K357',
                                   model_dir='.torch/ofa_checkpoints/%d' % hvd.rank())
         load_models(run_manager, dynamic_net, model_path=model_path)
     # validate after loading weights
@@ -275,6 +331,73 @@ def supporting_elastic_depth(train_func, run_manager, args, validate_func_dict):
         run_manager.write_log('%.3f\t%.3f\t%.3f\t%s' % validate(run_manager, **validate_func_dict), 'valid')
 
 
+def supporting_elastic_depth_without_horovod(train_func, run_manager, args, validate_func_dict, net, path):
+    # dynamic_net = run_manager.net
+    dynamic_net = net
+    if isinstance(dynamic_net, nn.DataParallel):
+        dynamic_net = dynamic_net.module
+
+    # load stage info
+    stage_info_path = os.path.join(path, 'depth.stage')
+    # stage_info_path = os.path.join(run_manager.path, 'depth.stage')
+    try:
+        stage_info = json.load(open(stage_info_path))
+    except Exception:
+        stage_info = {'stage': 0}
+
+    # load pretrained models
+    validate_func_dict['depth_list'] = sorted(dynamic_net.depth_list)
+
+    if args.phase == 1:
+        w = 0
+        model_path = download_url('https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K357',
+                                  model_dir='.torch/ofa_checkpoints/%d' % w)
+        load_models(run_manager, dynamic_net, model_path=model_path)
+    else:
+        model_path = download_url('https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D34_E6_K357',
+                                  model_dir='.torch/ofa_checkpoints/%d' % hvd.rank())
+        load_models(run_manager, dynamic_net, model_path=model_path)
+
+    # validate after loading weights
+    run_manager.write_log('%.3f\t%.3f\t%.3f\t%s' % validate(run_manager, **validate_func_dict), 'valid')
+    # run_manager.write_log('%.3f\t%.3f\t%.3f\t%s' % validate_without_horovod(run_manager, **validate_func_dict), 'valid')
+
+    depth_stage_list = dynamic_net.depth_list.copy()
+    depth_stage_list.sort(reverse=True)
+    n_stages = len(depth_stage_list) - 1
+    start_stage = n_stages - 1
+
+    for current_stage in range(start_stage, n_stages):
+        # run_manager.write_log(
+        #     '-' * 30 + 'Supporting Elastic Depth: %s -> %s' %
+        #     (depth_stage_list[:current_stage + 1], depth_stage_list[:current_stage + 2]) + '-' * 30, 'valid'
+        # )
+
+        # add depth list constraints
+        supported_depth = depth_stage_list[:current_stage + 2]
+        if len(set(dynamic_net.ks_list)) == 1 and len(set(dynamic_net.expand_ratio_list)) == 1:
+            validate_func_dict['depth_list'] = supported_depth
+        else:
+            validate_func_dict['depth_list'] = sorted({min(supported_depth), max(supported_depth)})
+        dynamic_net.set_constraint(supported_depth, constraint_type='depth')
+
+        # train
+        train_func(
+            run_manager, args,
+            lambda _run_manager, epoch, is_test: validate(_run_manager, epoch, is_test, **validate_func_dict)
+        )
+
+        # next stage & reset
+        stage_info['stage'] += 1
+        run_manager.start_epoch = 0
+        run_manager.best_acc = 0.0
+
+        # save and validate
+        run_manager.save_model(model_name='depth_stage%d.pth.tar' % stage_info['stage'])
+        json.dump(stage_info, open(stage_info_path, 'w'), indent=4)
+        validate_func_dict['depth_list'] = sorted(dynamic_net.depth_list)
+        run_manager.write_log('%.3f\t%.3f\t%.3f\t%s' % validate(run_manager, **validate_func_dict), 'valid')
+
 def supporting_elastic_expand(train_func, run_manager, args, validate_func_dict):
     dynamic_net = run_manager.net
     if isinstance(dynamic_net, nn.DataParallel):
@@ -291,11 +414,11 @@ def supporting_elastic_expand(train_func, run_manager, args, validate_func_dict)
     validate_func_dict['expand_ratio_list'] = sorted(dynamic_net.expand_ratio_list)
 
     if args.phase == 1:
-        model_path = download_url('https://file.lzhu.me/projects/OnceForAll/ofa_checkpoints/ofa_D234_E6_K357',
+        model_path = download_url('https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E6_K357',
                                   model_dir='.torch/ofa_checkpoints/%d' % hvd.rank())
         load_models(run_manager, dynamic_net, model_path=model_path)
     else:
-        model_path = download_url('https://file.lzhu.me/projects/OnceForAll/ofa_checkpoints/ofa_D234_E46_K357',
+        model_path = download_url('https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E46_K357',
                                   model_dir='.torch/ofa_checkpoints/%d' % hvd.rank())
         load_models(run_manager, dynamic_net, model_path=model_path)
     dynamic_net.re_organize_middle_weights()

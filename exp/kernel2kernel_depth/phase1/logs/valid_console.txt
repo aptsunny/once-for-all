@@ -1,0 +1,12 @@
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K7
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K357
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K7
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K357
+1.568	71.212	89.938	R160-W0-D3-E6-K3 (63.888), R224-W0-D3-E6-K3 (66.508), R160-W0-D3-E6-K7 (65.442), R224-W0-D3-E6-K7 (68.974), R160-W0-D4-E6-K3 (74.730), R224-W0-D4-E6-K3 (76.908), R160-W0-D4-E6-K7 (75.370), R224-W0-D4-E6-K7 (77.874), 
+------------------------------Supporting Elastic Depth: [4] -> [4, 3]------------------------------
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K7
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K357
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K7
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K357
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K7
+Loaded init from .torch/ofa_checkpoints/0/ofa_D4_E6_K357

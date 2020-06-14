@@ -15,8 +15,9 @@ from imagenet_codebase.data_providers.base_provider import DataProvider, MyRando
 
 
 class ImagenetDataProvider(DataProvider):
-    DEFAULT_PATH = '/dataset/imagenet'
-    
+    # DEFAULT_PATH = '/dataset/imagenet'
+    DEFAULT_PATH = '/home/ubuntu/0_datasets/data/ILSVRC2012/'
+
     def __init__(self, save_path=None, train_batch_size=256, test_batch_size=512, valid_size=None, n_worker=32,
                  resize_scale=0.08, distort_color=None, image_size=224,
                  num_replicas=None, rank=None):
@@ -41,6 +42,7 @@ class ImagenetDataProvider(DataProvider):
             self.active_img_size = max(self.image_size)
             valid_transforms = self._valid_transform_dict[self.active_img_size]
             train_loader_class = MyDataLoader  # randomly sample image size for each batch of training image
+            # train_loader_class = MyDataLoader(num_workers=0)  # randomly sample image size for each batch of training image
         else:
             self.active_img_size = self.image_size
             valid_transforms = self.build_valid_transform()

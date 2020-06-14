@@ -125,7 +125,8 @@ class RunConfig:
 
 
 class RunManager:
-    
+    # def __init__(self, path, net, run_config: RunConfig, hvd_compression, backward_steps=1, is_root=False, init=True):
+
     def __init__(self, path, net, run_config: RunConfig, init=True, measure_latency=None, no_gpu=False, mix_prec=None):
         self.path = path
         self.net = net
@@ -150,6 +151,7 @@ class RunManager:
         
         # net info
         net_info = get_net_info(self.net, self.run_config.data_provider.data_shape, measure_latency, True)
+        # net_info = get_net_info(self.net, (3, 224, 224), measure_latency, True)
         with open('%s/net_info.txt' % self.path, 'w') as fout:
             fout.write(json.dumps(net_info, indent=4) + '\n')
             try:
