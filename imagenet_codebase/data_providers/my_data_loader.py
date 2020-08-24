@@ -539,6 +539,7 @@ class _DataLoaderIter(object):
         base_seed = torch.LongTensor(1).random_().item()
 
         if self.num_workers > 0:
+        # if self.num_workers > 8:
             self.worker_init_fn = loader.worker_init_fn
             self.worker_queue_idx = 0
             self.worker_result_queue = multiprocessing.Queue()
@@ -586,7 +587,7 @@ class _DataLoaderIter(object):
             else:
                 self.data_queue = self.worker_result_queue
 
-            _update_worker_pids(id(self), tuple(w.pid for w in self.workers))
+            # _update_worker_pids(id(self), tuple(w.pid for w in self.workers))
             _set_SIGCHLD_handler()
             self.worker_pids_set = True
 

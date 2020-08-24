@@ -19,7 +19,7 @@ from imagenet_codebase.utils import download_url
 from elastic_nn.training.progressive_shrinking import load_models
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--task', type=str, default='kernel', choices=['kernel', 'depth', 'expand',])
+parser.add_argument('--task', type=str, default='depth', choices=['kernel', 'depth', 'expand',])
 parser.add_argument('--phase', type=int, default=1, choices=[1, 2])
 
 args = parser.parse_args()
@@ -37,7 +37,7 @@ elif args.task == 'depth':
     args.path = 'exp/kernel2kernel_depth/phase%d' % args.phase
     args.dynamic_batch_size = 2
     if args.phase == 1:
-        args.n_epochs = 25
+        args.n_epochs = 2 # 25
         args.base_lr = 2.5e-3
         args.warmup_epochs = 0
         args.warmup_lr = -1
@@ -78,7 +78,12 @@ args.manual_seed = 0
 
 args.lr_schedule_type = 'cosine'
 
-args.base_batch_size = 64 # 64
+# D3-E6-K3
+# 256 -> 7944(160)/15178(224)
+# 192 ->
+# 128 -> 4548(160)/8160(224)
+# 64->2890 # 64
+args.base_batch_size = 128 # 64
 args.valid_size = 10000
 
 args.opt_type = 'sgd'
@@ -93,7 +98,7 @@ args.model_init = 'he_fout'
 args.validation_frequency = 1
 args.print_frequency = 10
 
-args.n_worker = 8
+args.n_worker = 8 # 8
 args.resize_scale = 0.08
 args.distort_color = 'tf'
 args.image_size = '128,160,192,224'
