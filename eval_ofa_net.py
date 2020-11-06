@@ -6,9 +6,9 @@ import os
 import torch
 import argparse
 
-from imagenet_codebase.data_providers.imagenet import ImagenetDataProvider
-from imagenet_codebase.run_manager import ImagenetRunConfig, RunManager
-from model_zoo import ofa_net
+from ofa.imagenet_classification.data_providers.imagenet import ImagenetDataProvider
+from ofa.imagenet_classification.run_manager import ImagenetRunConfig, RunManager
+from ofa.model_zoo import ofa_net
 
 
 parser = argparse.ArgumentParser()
@@ -40,8 +40,9 @@ parser.add_argument(
     '-n',
     '--net',
     metavar='OFANET',
-    default='ofa_mbv3_d234_e346_k357_w1.0',
-    choices=['ofa_mbv3_d234_e346_k357_w1.0', 'ofa_mbv3_d234_e346_k357_w1.2', 'ofa_proxyless_d234_e346_k357_w1.3'],
+    default='ofa_resnet50',
+    choices=['ofa_mbv3_d234_e346_k357_w1.0', 'ofa_mbv3_d234_e346_k357_w1.2', 'ofa_proxyless_d234_e346_k357_w1.3',
+             'ofa_resnet50'],
     help='OFA networks')
 
 args = parser.parse_args()
@@ -74,5 +75,5 @@ run_manager.reset_running_statistics(net=subnet)
 print('Test random subnet:')
 print(subnet.module_str)
 
-loss, top1, top5 = run_manager.validate(net=subnet)
+loss, (top1, top5) = run_manager.validate(net=subnet)
 print('Results: loss=%.5f,\t top1=%.1f,\t top5=%.1f' % (loss, top1, top5))
